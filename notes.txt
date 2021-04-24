@@ -1,0 +1,88 @@
+sqlite prepared statement notes
+
+the prepare process converts an sql statement into a prepared statement
+
+that statement can then have values bound to any statement parameter
+
+the statement is then executed or "stepped thru".
+
+in the case of a query, each step will make a new results row available for processing.
+
+the column values of the current row can then be extracted and processed.
+
+the statement is stepped thru row by row until no more rows are available.
+
+the statement can be reset if it is to be re-executed with a new set of bindings
+
+when the statement is no longer required, the statement can be finalised - releasing any internal resources.
+
+sqlite_prepare(db, sql_str, sql_len, stmt, tail)
+
+recomended to use the latest:
+sqlite_prepare_v2(db, sql_str, sql_len, stmt, tail)
+
+once a statement has been prepared, you can bind parameter values to the statement. you can bind specific values to the parameter tokens before the statement is executed.
+
+
+code like this:
+
+prepare
+step
+finalise
+
+if doing a select statement will be like this:
+
+prepare
+while(step() == SQLITE_ROW)
+{ get data}
+finalise
+
+bound parameters
+----------------
+
+special parameters that you pass to a sqlite3_prepare_xxx function. placeholders for a value.
+
+after the statement is prepared, but before it is executed, you can bind specific values to each statement parameter.
+
+5 different styles for statement parameters.  luckily we can use the :<name> syntax used in the php course.
+
+INSERT INTO people (id, name) VALUES ( :is, :name );
+
+author prefers the colon name style parameters
+
+binding values
+--------------
+
+sqlite3_bind_xxx()
+
+...
+security and performance
+------------------------
+
+issues with single and double quotes. easy to get wrong and have invalid sql
+
+also security - see exapmple below:
+
+sprintf(buf, "INSERT INTO (people ( id, name ) VALUES ( %d, '%s' );", idval, nameval);
+
+idval = 23;
+nameval = "Fred' ); DROP TABLE people;";
+
+this would result in:
+INSERT INTO (people ( id, name ) VALUES ( 23, 'Fred' );
+DROP TABLE people;
+' );
+
+but sqlite3_prepare functions will only prepare a single statement up to 1st ;
+
+sqlite convenience functions, eg sqlite3_exec() will automatically just run that code.
+
+sqlite3_exec() doesn't allow for the use of bound valies, forcing you to programmatically build sql strings.  see analysis later in chapter of sqlite3_exec and why not to use.
+
+sql injection attack
+
+as long as you are careful about how you extract and display the string, it is perfectly safe to directly bind an untrusted string value to a parameter value without fear of an SQL injection.
+
+also performance.  with prepared statements, sql command statement is static and can be used as is without modification or additional buffers. the parser doesn't need to deal with converting and storing literal values.
+
+using parameters is the safe and wise choice.  it may take a few more lines of code but the process is safer, faster and more memory efficient.

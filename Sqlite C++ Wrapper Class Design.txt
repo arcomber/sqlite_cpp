@@ -1,0 +1,26 @@
+Sqlite C++ Wrapper Class Design
+
+Introduction
+
+sqlite is a lightweight database which you can use simply by linking in the sqlite.c file into your C or C++ program.  The 'market' for sqlite is single use, or small number of users database use.  The advantage of sqlite over other database types, for example, mysql, is that it is much simpler to deploy and it doesn't require a lot of dependencies and supporting files/resources.  For example, Firefox, Chrome and Safari web browsers use sqlite for storage of configuration items.
+
+Motivation
+
+I wrote a sqlite wrapper about a year ago because I had written a cgi, common gateway interface, program which needed database access.  Of course most people would write this sort of thing in a language like PHP.  However, I wanted to make a small executable for my contact manager program, https://iteloffice.com/iteloffice.html, and so wrote the cgi program in C++.  The web server used is also 'home' written.
+
+After writing the program, I needed to learn about web development, for my webiste and also generally for writing Itel Office, and so did this online course: https://www.coursera.org/learn/web-applications-php/home/welcome  The course was great and I learnt that databases should be accessed using prepared statements, not by direct sql.  I wish I had done the course before I wrote the sqlite wrapper.  But never mind, that was a learning experience.  Using the old sqlite wrapper I had to do special handling of embedded quotes and other characters and I remember that being a bit of a nightmare.  So writing this new sqlite wrapper should be a great improvement to the code.
+
+
+Requirements of Library
+
+1. Usage of the wrapper class must not be significantly slower than using the c library calls directly.
+
+2. Usage of the wrapper class should be of a high level of abstraction and not require detailed sqlite expertise.
+
+3. The library should include unit tests to cover all code branches.
+
+4. The following SQL DML functions should be supported: SELECT, INSERT, UPDATE and DELETE.
+
+5. The library will be supplied as source code and require a C++11 or better compiler.
+
+6. Exception handling will not be used, instead sqlite C library error codes will be returned from functions (work out how to provide textual description if requested).

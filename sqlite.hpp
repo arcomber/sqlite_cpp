@@ -41,7 +41,7 @@ BLOB: std::vector<uint8_t>
 		int close();
 		/* INSERT INTO (col1, col2) VALUES (:col1, :col2); table_name is table to insert into
 		fields are a list of column name to column value key value pairs */
-		int insert_into(const std::string table_name, std::vector<column_values> fields);
+		int insert_into(const std::string& table_name, std::vector<column_values> fields);
 		/* returns rowid of last successfully inserted row. If no rows 
 		inserted since this database connectioned opened, returns zero. */
 		int last_insert_rowid();

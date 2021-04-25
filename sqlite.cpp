@@ -9,7 +9,7 @@
 
 namespace {
 	std::string insert_into_helper(
-		const std::string table_name,
+		const std::string& table_name,
 		const std::vector<itel::column_values>& fields) {
 
 		std::string sqlfront{ "INSERT INTO " + table_name + " (" };
@@ -68,7 +68,7 @@ namespace itel {
 		return sqlite3_close(db_);
 	}
 
-	int sqlite::insert_into(const std::string table_name, std::vector<column_values> fields) {
+	int sqlite::insert_into(const std::string& table_name, std::vector<column_values> fields) {
 		if (db_ == nullptr) {
 			return SQLITE_ERROR;
 		}

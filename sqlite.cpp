@@ -1,21 +1,6 @@
-/*
-
-this is how is done in this lib:
-
-sqlite3pp::command cmd(
-  db, "INSERT INTO contacts (name, phone) VALUES (:user, :phone)");
-cmd.bind(":user", "Mike", sqlite3pp::nocopy);
-cmd.bind(":phone", "555-1234", sqlite3pp::nocopy);
-cmd.execute();
-
-...
-https://github.com/iwongu/sqlite3pp
-
-
-*/
-
 #include "sqlite.hpp"
 
+#include <algorithm>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -25,15 +10,15 @@ https://github.com/iwongu/sqlite3pp
 namespace {
 	std::string insert_into_helper(
 		const std::string table_name,
-		const std::vector<std::pair<std::string, std::string>>& fields) {
+		const std::vector<itel::column_values>& fields) {
 
 		std::string sqlfront{ "INSERT INTO " + table_name + " (" };
 		std::string sqlend{ ") VALUES (" };
 
 		std::string separator{ "" };
 		for (const auto& field : fields) {
-			sqlfront += separator + field.first;
-			sqlend += separator + ':' + field.first;
+			sqlfront += separator + field.column_name;
+			sqlend += separator + ':' + field.column_name;
 			separator = ",";
 		}
 
@@ -43,6 +28,28 @@ namespace {
 }
 
 namespace itel {
+
+	std::ostream& operator<< (std::ostream& os, const column_values& v) {
+
+		os << "name: " << v.column_name << ", value: ";
+
+		switch (v.column_type.index()) {
+		case 0: os << std::get<0>(v.column_type) << " of type int"; break;
+		case 1: os << std::get<1>(v.column_type) << " of type double"; break;
+		case 2: os << std::get<2>(v.column_type) << " of type string"; break;
+		case 3:
+		  {
+			// printing binary files can result in a LOT of output.  Should this be some sort of option?
+			std::for_each(std::get<3>(v.column_type).begin(), std::get<3>(v.column_type).end(), [&os](const uint8_t& byte) {
+				os << std::hex << std::setfill('0') << std::setw(2) << (byte & 0xFF) << ' ';
+			});
+			os << " of type vector<uint8_t>"; break;
+		  }
+		}
+
+		return os;
+	}
+
 
 	sqlite::sqlite() : db_(nullptr) {}
 
@@ -61,7 +68,7 @@ namespace itel {
 		return sqlite3_close(db_);
 	}
 
-	int sqlite::insert_into(const std::string table_name, std::vector<std::pair<std::string, std::string>> fields) {
+	int sqlite::insert_into(const std::string table_name, std::vector<column_values> fields) {
 		if (db_ == nullptr) {
 			return SQLITE_ERROR;
 		}
@@ -76,11 +83,18 @@ namespace itel {
 		}
 
 		// loop thru each parameter, calling bind for each one
-		for (const auto& params : fields) {
-			std::cout << "inserting params: " << params.first << "->" << params.second << std::endl;
-			std::string next_param{ ':' + params.first };
+		for (const auto& param : fields) {
+			std::string next_param{ ':' + param.column_name };
 			int idx = sqlite3_bind_parameter_index(stmt, next_param.c_str());
-			rc = sqlite3_bind_text(stmt, idx, params.second.c_str(), -1, SQLITE_STATIC);
+
+			switch (param.column_type.index()) {
+			case 0: rc = sqlite3_bind_int(stmt, idx, std::get<0>(param.column_type)); break;
+			case 1: rc = sqlite3_bind_double(stmt, idx, std::get<1>(param.column_type)); break;
+			case 2: rc = sqlite3_bind_text(stmt, idx, std::get<2>(param.column_type).c_str(), -1, SQLITE_STATIC); break;
+			case 3: 
+				rc = sqlite3_bind_blob(stmt, idx, std::get<3>(param.column_type).data(), std::get<3>(param.column_type).size(), SQLITE_STATIC); 
+				break;
+			}
 		}
 
 		rc = sqlite3_step(stmt);
@@ -93,24 +107,17 @@ namespace itel {
 		return rc;
 	}
 
-	//int sqlite::perform_delete_rows(const std::string& sql, std::string& result) {
+	int sqlite::last_insert_rowid() {
+		return static_cast<int>(sqlite3_last_insert_rowid(db_));
+	}
 
-	//	if (db_ == nullptr) {
-	//		result = "null db ptr";
-	//		return SQLITE_ERROR;
-	//	}
-
-	//	char* err_msg = 0;
-	//	int rc = sqlite3_exec(db_, sql.c_str(), 0, 0, &err_msg);
-
-	//	if (rc != SQLITE_OK) {
-	//		if (err_msg) {
-	//			result = std::string(err_msg);
-	//		}
-	//		return 0;
-	//	}
-
-	//	return sqlite3_changes(db_);
-	//}
+	const std::string sqlite::get_last_error_description() {
+		if (db_ == nullptr) {
+			return "";
+		}
+		const char* error = sqlite3_errmsg(db_);
+		std::string s(error ? error : "");
+		return s;
+	}
 
 } // itel

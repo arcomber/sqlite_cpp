@@ -3,7 +3,9 @@
 
 # I added
 *.~
-
+*.png
+*.db
+**/prepared/*.db
 toremove/
 
 

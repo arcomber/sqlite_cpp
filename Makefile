@@ -1,6 +1,6 @@
 # sqlite requires pthreads and dl to support dynamic loading
 # https://sqlite.org/howtocompile.html
-CXXFLAGS=-Wall -pedantic
+CXXFLAGS=-Wall -pedantic -std=c++17
 LINKERFLAGS=-lpthread -ldl
 
 CSOURCES =  sqlite3.c

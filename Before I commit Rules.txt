@@ -1,0 +1,8 @@
+Before I commit Rules
+---------------------
+
+before committing, the items below must be checked.
+
+1. check runs on windows
+2. check runs on linux
+3. run cppcheck

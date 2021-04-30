@@ -17,7 +17,7 @@ int main()
 {
 	system("pwd");
 
-	itel::sqlite db;
+	sql::sqlite db;
 	int rc = db.open("mydb.db");
 	std::cout << "db.open returned: " << rc << std::endl;
 
@@ -31,7 +31,7 @@ int main()
 
 	std::vector<uint8_t> buffer(std::istreambuf_iterator<char>(f), {});
 
-	std::vector<itel::column_values> params {
+	std::vector<sql::column_values> params {
 		{"name", "Mickey Mouse"}, 
 		{"age", 12},
 		{"photo", buffer}
@@ -44,12 +44,33 @@ int main()
 	rc = db.insert_into("test", params);
 	std::cout << "db.insert_into(...) returned: " << rc << std::endl;
 
+	int lastrowid = 0;
+
 	if (rc == SQLITE_OK) {
-		std::cout << "inserted into rowid: " << db.last_insert_rowid() << std::endl;
+		lastrowid = db.last_insert_rowid();
+		std::cout << "inserted into rowid: " << lastrowid << std::endl;
 	}
 
+	// let us now update this record
+	std::vector<sql::column_values> updated_params{
+	{"name", "Donald Duck"},
+	{"age", 23}
+	};
+
+	std::vector<sql::column_values> where{
+      {"rowid", lastrowid},
+	  {"age", 12}
+	};
+
+	rc = db.update("test", updated_params, where);
+	std::cout << "db.update(...) returned: " << rc << std::endl;
+
+	rc = db.delete_from("test", where);
+	std::cout << "db.delete_from(...) returned: " << rc << std::endl;
+
+
 	// test to insert into an invalid column
-	std::vector<itel::column_values> bad_params {
+	std::vector<sql::column_values> bad_params {
 	    {"nave", "Tanner"},
 	    {"address8", "3 The Avenue"},
 	    {"postcoode", "GU17 0TR"}

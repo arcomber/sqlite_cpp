@@ -4,7 +4,6 @@
 
 	CREATE TABLE test (name TEXT, age INTEGER, photo BLOB);
 */
-
 #include "sqlite.hpp"
 
 #include <iostream>
@@ -12,11 +11,12 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
+#include <iomanip>
+
+using namespace sql;
 
 int main()
 {
-	system("pwd");
-
 	sql::sqlite db;
 	int rc = db.open("mydb.db");
 	std::cout << "db.open returned: " << rc << std::endl;
@@ -58,16 +58,48 @@ int main()
 	};
 
 	std::vector<sql::column_values> where{
-      {"rowid", lastrowid},
-	  {"age", 12}
+      {"rowid", lastrowid}
 	};
 
 	rc = db.update("test", updated_params, where);
 	std::cout << "db.update(...) returned: " << rc << std::endl;
 
+	// try SELECT
+	std::vector<std::vector<sql::column_values>> results;
+		
+	// simplest way
+	//rc = db.select_star("test", results);
+
+	// using select_column to specifically display sqlite table rowid
+	//rc = db.select_columns("test", { "rowid", "name", "age", "photo" }, {}, results);
+
+	// Or pass in rowid and * to display rowid and all other columns
+	rc = db.select_columns("test", { "rowid", "*" }, {}, results);
+	std::cout << "db.select_columns(...) returned: " << rc << std::endl;
+	
+    // print header of table - column names
+	std::string separator;
+	for (size_t col = 0; col < results[0].size(); col++) {
+		std::cout << separator << std::setw(14) << results[0][col].column_name;
+		separator = ", ";
+	}
+	std::cout << "\n";
+
+	// print values
+	for (size_t row = 0; row < results.size(); row++) {
+		separator = "";
+		for (size_t col = 0; col < results[0].size(); col++) {
+			std::cout << separator << std::setw(14) << results[row][col].column_value;
+			separator = ", ";
+		}
+		std::cout << "\n";
+	}
+
+	// finally delete row added
 	rc = db.delete_from("test", where);
 	std::cout << "db.delete_from(...) returned: " << rc << std::endl;
 
+	// code below inserts into data into a table that does not exist
 
 	// test to insert into an invalid column
 	std::vector<sql::column_values> bad_params {

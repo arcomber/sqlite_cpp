@@ -25,6 +25,9 @@ SOFTWARE.
 #ifndef SQLITE_HPP_
 #define SQLITE_HPP_
 
+// uncomment below to print blob data as hex in ostream overload of column_values
+// #define PRINT_BLOB_AS_HEX
+
 #include "sqlite3.h"
 
 #include <string>
@@ -51,6 +54,7 @@ BLOB: std::vector<uint8_t>
 	};
 
 	std::ostream& operator<< (std::ostream& os, const column_values& v);
+	std::ostream& operator<< (std::ostream& os, const sqlite_data_type& v);
 
 	class sqlite {
 	public:
@@ -89,6 +93,30 @@ BLOB: std::vector<uint8_t>
 		/* DELETE FROM table_name;
 		same as delete_from(table_name, where) except no WHERE criteria so potential to delete EVERY row. USE WITH CAUTION. */
 		int delete_from(const std::string& table_name);
+
+		/* SELECT * FROM table_name WHERE col1 = x; 
+		table_name is table to select, 
+		where is list of key value pairs as criterion for select
+		results is a table of values */
+		int select_star(const std::string& table_name, 
+			            const std::vector<column_values>& where, 
+			                  std::vector<std::vector<sql::column_values>>& results);
+
+		/* SELECT * FROM table_name; 
+		table_name is table to select, 
+		results is a table of values */
+		int select_star(const std::string& table_name,
+			std::vector<std::vector<sql::column_values>>& results);
+
+		/* SELECT col1, col2 FROM table_name WHERE col1 = x;
+		table_name is table to select, 
+		fields are list of fields in table to select
+		where is list of key value pairs as criterion for select
+		results is a table of values */
+		int select_columns(const std::string& table_name,
+			               const std::vector<std::string>& fields,
+			               const std::vector<column_values>& where,
+			                     std::vector<std::vector<sql::column_values>>& results);
 
 		/* get error text relating to last sqlite error. Call this function
 		whenever an operation returns a sqlite error code */

@@ -4,7 +4,7 @@ version 0.0.1
 https://github.com/arcomber/sqlite_cpp
 Licensed under the MIT License <http://opensource.org/licenses/MIT>.
 SPDX-License-Identifier: MIT
-Copyright (c) 2013-2019 Niels Lohmann <http://nlohmann.me>.
+Copyright (c) 2021 Angus Comber
 Permission is hereby  granted, free of charge, to any  person obtaining a copy
 of this software and associated  documentation files (the "Software"), to deal
 in the Software  without restriction, including without  limitation the rights
@@ -38,17 +38,22 @@ SOFTWARE.
 
 namespace sql {
 
-/*
-sqlite types can be: NULL, INTEGER, REAL, TEXT, BLOB
-NULL: we don't support this type
-INTEGER: int
-REAL: double
-TEXT: std::string
-BLOB: std::vector<uint8_t>
-*/
+	/*
+	sqlite types can be: NULL, INTEGER, REAL, TEXT, BLOB
+	NULL: we don't support this type
+	INTEGER: int
+	REAL: double
+	TEXT: std::string
+	BLOB: std::vector<uint8_t>
+	*/
 	using sqlite_data_type = std::variant<int, double, std::string, std::vector<uint8_t> >;
 
 	struct column_values {
+		std::string column_name;
+		sqlite_data_type column_value;
+	};
+
+	struct where_binding {
 		std::string column_name;
 		sqlite_data_type column_value;
 	};
@@ -74,49 +79,58 @@ BLOB: std::vector<uint8_t>
 		fields are a list of column name to column value key value pairs */
 		int insert_into(const std::string& table_name, const std::vector<column_values>& fields);
 
-		/* returns rowid of last successfully inserted row. If no rows 
+		/* returns rowid of last successfully inserted row. If no rows
 		inserted since this database connectioned opened, returns zero. */
 		int last_insert_rowid();
 
 		/* UPDATE contacts SET col1 = value1, col2 = value2, ... WHERE rowid = therowid;
-        table_name is table to update, fields are a list of column name to column value key value pairs to update and
-        where is a list of where criteria/filters */
-		int update(const std::string& table_name, const std::vector<column_values>& fields, const std::vector<column_values>& where);
+		table_name is table to update, 
+		fields are a list of column name to column value key value pairs to update
+		where_clause is WHERE clause predicate expressed as : parameterised query
+		bindings is the binding of values in the where clause */
+		int update(
+			const std::string& table_name, 
+			const std::vector<column_values>& fields, 
+			const std::string& where_clause, 
+			const std::vector<where_binding>& bindings);
 
-		/* UPDATE contacts SET col1 = value1, col2 = value2, ...;  
-		same as update(table_name, fields, where) except no WHERE criteria so potential to change EVERY row. USE WITH CAUTION. */
+		/* UPDATE contacts SET col1 = value1, col2 = value2, ...;
+		same as update(table_name, fields, where) except no WHERE clause so potential to change EVERY row. USE WITH CAUTION. */
 		int update(const std::string& table_name, const std::vector<column_values>& fields);
 
 		/* DELETE FROM table_name WHERE condition; */
-		int delete_from(const std::string& table_name, const std::vector<column_values>& where);
+		int delete_from(const std::string& table_name, const std::string& where_clause, const std::vector<where_binding>& bindings);
 
 		/* DELETE FROM table_name;
-		same as delete_from(table_name, where) except no WHERE criteria so potential to delete EVERY row. USE WITH CAUTION. */
+		same as delete_from(table_name, where) except no WHERE clause so potential to delete EVERY row. USE WITH CAUTION. */
 		int delete_from(const std::string& table_name);
 
-		/* SELECT * FROM table_name WHERE col1 = x; 
-		table_name is table to select, 
-		where is list of key value pairs as criterion for select
+		/* SELECT * FROM table_name WHERE col1 = x;
+		table_name is table to select,
+		where_clause is WHERE clause predicate expressed as : parameterised query
+		bindings is the binding of values in the where clause
 		results is a table of values */
-		int select_star(const std::string& table_name, 
-			            const std::vector<column_values>& where, 
-			                  std::vector<std::vector<sql::column_values>>& results);
+		int select_star(const std::string& table_name,
+			const std::string& where_clause,
+			const std::vector<where_binding>& bindings,
+			std::vector<std::vector<sql::column_values>>& results);
 
-		/* SELECT * FROM table_name; 
-		table_name is table to select, 
+		/* SELECT * FROM table_name;
+		table_name is table to select,
 		results is a table of values */
 		int select_star(const std::string& table_name,
 			std::vector<std::vector<sql::column_values>>& results);
 
 		/* SELECT col1, col2 FROM table_name WHERE col1 = x;
-		table_name is table to select, 
+		table_name is table to select,
 		fields are list of fields in table to select
 		where is list of key value pairs as criterion for select
 		results is a table of values */
 		int select_columns(const std::string& table_name,
-			               const std::vector<std::string>& fields,
-			               const std::vector<column_values>& where,
-			                     std::vector<std::vector<sql::column_values>>& results);
+			const std::vector<std::string>& fields,
+			const std::string& where_clause,
+			const std::vector<where_binding>& bindings,
+			std::vector<std::vector<sql::column_values>>& results);
 
 		/* get error text relating to last sqlite error. Call this function
 		whenever an operation returns a sqlite error code */
@@ -129,3 +143,4 @@ BLOB: std::vector<uint8_t>
 } // itel
 
 #endif // SQLITE_HPP_
+

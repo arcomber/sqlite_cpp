@@ -1,0 +1,8 @@
+other tests we need:
+1. no row in table matches where clause - correctly returns zero results
+2. database filename does not exist - no results and no crash
+3. how can we do a performance test?  eg load a load of rows in a loop and check time taken
+4. // TODO - test where where_clause = "" - crashes - find out why and how to prevent
+5. setup gtest to run on linux - how to do that?
+6. gow to do the range dates thing using this?
+7. how to do a join - like we need using this?

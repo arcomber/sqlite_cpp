@@ -187,24 +187,35 @@ namespace sql {
 		return os;
 	}
 
-	std::ostream& operator<< (std::ostream& os, const sqlite_data_type& v) {
-		switch (v.index()) {
-		case 0: os << std::get<0>(v); break;
-		case 1: os << std::get<1>(v); break;
-		case 2: os << std::get<2>(v); break;
-		case 3:
-		{
 #ifdef PRINT_BLOB_AS_HEX
-			auto previous_flags = os.flags();
-			std::for_each(std::get<3>(v.column_value).begin(), std::get<3>(v.column_value).end(), [&os](const uint8_t& byte) {
-				os << std::hex << std::setfill('0') << std::setw(2) << (byte & 0xFF) << ' ';
-				});
-			os.setf(previous_flags);
+	std::ostream& operator<<(std::ostream & os, const std::vector<uint8_t>&v)
+	{
+	    auto previous_flags = os.flags();
+		std::for_each(v.begin(), v.end(), [&os](const uint8_t& byte) {
+			os << std::hex << std::setfill('0') << std::setw(2) << (byte & 0xFF) << ' ';
+			});
+		os.setf(previous_flags);
 #else
-			os << "<blob>";
+	std::ostream& operator<<(std::ostream & os, const std::vector<uint8_t>& /* v */)
+	{
+	    os << "<blob>";
 #endif
-			break;
-		}
+		return os;
+	}
+
+	std::ostream& operator<<(std::ostream& os, const sqlite_data_type& v)
+	{
+		std::visit([&](const auto& element) {
+				os << element;
+			}, v);
+
+		return os;
+	}
+
+	std::ostream& operator<< (std::ostream& os, const std::map<std::string, sqlite_data_type>& v) {
+
+		for (const auto& element : v) {
+			os << element.first << ": " << element.second << '|';
 		}
 
 		return os;
@@ -284,7 +295,7 @@ namespace sql {
 		const std::vector<std::string>& fields,
 		const std::string& where_clause,
 		const std::vector<where_binding>& bindings,
-		std::vector<std::vector<sql::column_values>>& results) {
+		std::vector<std::map<std::string, sqlite_data_type>>& results) {
 		if (db_ == nullptr) { return SQLITE_ERROR; }
 
 		const std::string sql = select_helper(table_name, fields, where_clause);
@@ -304,7 +315,7 @@ namespace sql {
 
 		int rc = 0;
 		while ((rc = sqlite3_step(stmt)) != SQLITE_DONE) {
-		std::vector<sql::column_values> row_values;
+		std::map<std::string, sqlite_data_type> row;
 		for (int i = 0; i < num_cols; i++)
 		{
 			switch (sqlite3_column_type(stmt, i))
@@ -313,56 +324,36 @@ namespace sql {
 			{
 				const unsigned char* value = sqlite3_column_text(stmt, i);
 				int len = sqlite3_column_bytes(stmt, i);
-				// value must be copied because after call to finalize, memory will be invalidated
-				std::string s(value, value + len);
-				column_values cv;
-				cv.column_name = column_names[i];
-				cv.column_value = s;
-				row_values.push_back(cv);
+				row[column_names[i]] = std::string(value, value+len);
 			}
 			break;
 			case SQLITE_INTEGER:
 			{
-				int value = sqlite3_column_int(stmt, i);
-				column_values cv;
-				cv.column_name = column_names[i];
-				cv.column_value = value;
-				row_values.push_back(cv);
+				row[column_names[i]] = sqlite3_column_int(stmt, i);
 			}
 			break;
 			case SQLITE_FLOAT:
 			{
-				double value = sqlite3_column_double(stmt, i);
-				column_values cv;
-				cv.column_name = column_names[i];
-				cv.column_value = value;
-				row_values.push_back(cv);
+				row[column_names[i]] = sqlite3_column_double(stmt, i);
 			}
 			break;
 			case SQLITE_BLOB:
 			{
 				const uint8_t* value = reinterpret_cast<const uint8_t*>(sqlite3_column_blob(stmt, i));
 				int len = sqlite3_column_bytes(stmt, i);
-				column_values cv;
-				cv.column_name = column_names[i];
-				// value must be copied because after call to finalize, memory will be invalidated
-				cv.column_value = std::vector<uint8_t>(value, value + len);
-				row_values.push_back(cv);
+				row[column_names[i]] = std::vector<uint8_t>(value, value + len);
 			}
 			break;
 			case SQLITE_NULL:
 			{
-				column_values cv;
-				cv.column_name = column_names[i];
-				cv.column_value = "null";
-				row_values.push_back(cv);
+				row[column_names[i]] = "null";
 			}
 			break;
 			default:
 				break;
 			}
 		}
-		results.push_back(row_values);
+		results.push_back(row);
 		}
 
 		return sqlite3_finalize(stmt);
@@ -371,12 +362,12 @@ namespace sql {
 	int sqlite::select_star(const std::string& table_name,
 		const std::string& where_clause,
 		const std::vector<where_binding>& bindings,
-		std::vector<std::vector<sql::column_values>>& results) {
+		std::vector<std::map<std::string, sqlite_data_type>>& results) {
 		return select_columns(table_name, {}, where_clause, bindings, results);
 	}
 
 	int sqlite::select_star(const std::string& table_name,
-		std::vector<std::vector<sql::column_values>>& results) {
+		std::vector<std::map<std::string, sqlite_data_type>>& results) {
 		return select_star(table_name, "", {}, results);
 	}
 

@@ -1,0 +1,6 @@
+make
+
+./sqlite_test - check all tests pass
+
+valgrind --leak-check=yes ./sqlite_test
+

@@ -35,6 +35,7 @@ SOFTWARE.
 #include <variant>
 #include <cstdint>
 #include <iostream>
+#include <map>
 
 namespace sql {
 
@@ -60,6 +61,9 @@ namespace sql {
 
 	std::ostream& operator<< (std::ostream& os, const column_values& v);
 	std::ostream& operator<< (std::ostream& os, const sqlite_data_type& v);
+
+	std::ostream& operator<< (std::ostream& os, const std::map<std::string, sqlite_data_type>& v);
+
 
 	class sqlite {
 	public:
@@ -113,13 +117,12 @@ namespace sql {
 		int select_star(const std::string& table_name,
 			const std::string& where_clause,
 			const std::vector<where_binding>& bindings,
-			std::vector<std::vector<sql::column_values>>& results);
-
+		    std::vector<std::map<std::string, sqlite_data_type>>& results);
 		/* SELECT * FROM table_name;
 		table_name is table to select,
 		results is a table of values */
 		int select_star(const std::string& table_name,
-			std::vector<std::vector<sql::column_values>>& results);
+			std::vector<std::map<std::string, sqlite_data_type>>& results);
 
 		/* SELECT col1, col2 FROM table_name WHERE col1 = x;
 		table_name is table to select,
@@ -130,7 +133,7 @@ namespace sql {
 			const std::vector<std::string>& fields,
 			const std::string& where_clause,
 			const std::vector<where_binding>& bindings,
-			std::vector<std::vector<sql::column_values>>& results);
+			std::vector<std::map<std::string, sqlite_data_type>>& results);
 
 		/* get error text relating to last sqlite error. Call this function
 		whenever an operation returns a sqlite error code */

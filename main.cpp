@@ -66,7 +66,7 @@ int main()
 	std::cout << "db.update(...) returned: " << rc << std::endl;
 
 	// try SELECT
-	std::vector<std::vector<sql::column_values>> results;
+	std::vector<std::map<std::string, sql::sqlite_data_type>> results;
 
 	// simplest way
 	//rc = db.select_star("test", results);
@@ -85,25 +85,10 @@ int main()
 
 	std::cout << "db.select_columns(...) returned: " << rc << std::endl;
 
-	// print header of table - column names
-	std::cout << "No. rows returned: " << results.size() << std::endl;
-	if (!results.empty()) {
-		std::string separator;
-		for (size_t col = 0; col < results[0].size(); col++) {
-			std::cout << separator << std::setw(14) << results[0][col].column_name;
-			separator = ", ";
-		}
-		std::cout << "\n";
-
-		// print values
-		for (size_t row = 0; row < results.size(); row++) {
-			separator = "";
-			for (size_t col = 0; col < results[0].size(); col++) {
-				std::cout << separator << std::setw(14) << results[row][col].column_value;
-				separator = ", ";
-			}
-			std::cout << "\n";
-		}
+	// print rows
+	int i = 0;
+	for (const auto& row : results) {
+		std::cout << "row" << ++i << ": " << row << std::endl;
 	}
 
 	// finally delete row added

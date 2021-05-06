@@ -6,3 +6,5 @@ before committing, the items below must be checked.
 1. check runs on windows
 2. check runs on linux
 3. run cppcheck
+4. run unit tests - tests dir
+5. run: valgrind --leak-check=yes sqlite_test

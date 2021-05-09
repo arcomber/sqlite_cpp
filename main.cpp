@@ -42,7 +42,7 @@ int main()
 		std::cout << "inserting param: " << param << std::endl;
 	}
 
-	rc = db.insert_into("test", params);
+	rc = db.insert_into("test", params.begin(), params.end());
 	std::cout << "db.insert_into(...) returned: " << rc << std::endl;
 
 	int lastrowid = 0;
@@ -62,7 +62,7 @@ int main()
 		{"rowid", lastrowid}
 	};
 
-	rc = db.update("test", updated_params, "WHERE rowid=:rowid", bindings);
+	rc = db.update("test", updated_params.begin(), updated_params.end(), "WHERE rowid=:rowid", bindings.begin(), bindings.end());
 	std::cout << "db.update(...) returned: " << rc << std::endl;
 
 	// try SELECT
@@ -81,7 +81,8 @@ int main()
 	   {"name", "Don%"}
 	};
 
-	rc = db.select_columns("test", { "rowid", "*" }, "WHERE name LIKE :name", select_bindings, results);
+	std::vector<std::string> cols{ "rowid", "*" };
+	rc = db.select_columns("test", cols.begin(), cols.end(), "WHERE name LIKE :name", select_bindings.begin(), select_bindings.end(), results);
 
 	std::cout << "db.select_columns(...) returned: " << rc << std::endl;
 
@@ -96,7 +97,7 @@ int main()
         {"rowid", lastrowid}
     };
 
-	rc = db.delete_from("test", "WHERE rowid=:rowid", delete_bindings);
+	rc = db.delete_from("test", "WHERE rowid=:rowid", delete_bindings.begin(), delete_bindings.end());
 	std::cout << "db.delete_from(...) returned: " << rc << std::endl;
 
 	// code below inserts into data into a table that does not exist
@@ -108,7 +109,7 @@ int main()
 		{"postcoode", "GU17 0TR"}
 	};
 
-	rc = db.insert_into("contacts", bad_params);
+	rc = db.insert_into("contacts", bad_params.begin(), bad_params.end());
 	std::cout << "db.insert_into(...) returned: " << rc << std::endl;
 
 	if (rc != SQLITE_OK) {

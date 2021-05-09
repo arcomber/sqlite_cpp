@@ -30,7 +30,7 @@ namespace {
 
 		if (rc != SQLITE_OK) {
 
-			fprintf(stderr, "Cannot open database: %s\n", sqlite3_errmsg(db));
+			std::cerr << "Cannot open database: " << sqlite3_errmsg(db) << std::endl;
 			sqlite3_close(db);
 
 			FAIL() << "Cannot open database for testing\n";
@@ -55,7 +55,7 @@ namespace {
 
 			if (rc != SQLITE_OK) {
 
-				fprintf(stderr, "SQL error: %s\n", err_msg);
+				std::cerr << "SQL error: " << err_msg << std::endl;
 
 				sqlite3_free(err_msg);
 				sqlite3_close(db);
@@ -88,7 +88,7 @@ TEST_F(sqlite_cpp_tester, given_a_valid_insert_select_returns_same_as_inserted) 
 	sql::sqlite db;
 	EXPECT_EQ(db.open("contacts.db"), SQLITE_OK);
 
-	std::vector<sql::column_values> fields {
+	const std::vector<sql::column_values> fields {
 	{"name", "Mickey Mouse"},
 	{"company", "Disney"},
 	{"mobile", "07755123456"},
@@ -105,7 +105,7 @@ TEST_F(sqlite_cpp_tester, given_a_valid_insert_select_returns_same_as_inserted) 
 	{"notes", "delightful mouse"}
 	};
 
-	EXPECT_EQ(db.insert_into("contacts", fields), SQLITE_OK);
+	EXPECT_EQ(db.insert_into("contacts", fields.begin(), fields.end()), SQLITE_OK);
 
 	int lastrowid = db.last_insert_rowid();
 
@@ -114,7 +114,7 @@ TEST_F(sqlite_cpp_tester, given_a_valid_insert_select_returns_same_as_inserted) 
 	};
 	std::vector<std::map<std::string, sql::sqlite_data_type>> results;
 	
-	EXPECT_EQ(db.select_star("contacts", "WHERE rowid=:rowid", bindings, results), SQLITE_OK);
+	EXPECT_EQ(db.select_star("contacts", "WHERE rowid=:rowid", bindings.begin(), bindings.end(), results), SQLITE_OK);
 
 	EXPECT_EQ(results.size(), 1u);
 
@@ -139,7 +139,7 @@ TEST_F(sqlite_cpp_tester, given_a_valid_insert_then_update_select_returns_same_a
 	sql::sqlite db;
 	EXPECT_EQ(db.open("contacts.db"), SQLITE_OK);
 
-	std::vector<sql::column_values> fields{
+	const std::vector<sql::column_values> fields{
 	{"name", "Mickey Mouse"},
 	{"company", "Disney"},
 	{"mobile", "07755123456"},
@@ -156,12 +156,12 @@ TEST_F(sqlite_cpp_tester, given_a_valid_insert_then_update_select_returns_same_a
 	{"notes", "delightful mouse"}
 	};
 
-	EXPECT_EQ(db.insert_into("contacts", fields), SQLITE_OK);
+	EXPECT_EQ(db.insert_into("contacts", fields.begin(), fields.end()), SQLITE_OK);
 
 	int lastrowid = db.last_insert_rowid();
 
 	// UPDATE
-	std::vector<sql::column_values> updated_fields{
+	const std::vector<sql::column_values> updated_fields{
 	{"name", "Donald Duck"},
 	{"company", "Disney"},
 	{"mobile", "07755654321"},
@@ -184,12 +184,14 @@ TEST_F(sqlite_cpp_tester, given_a_valid_insert_then_update_select_returns_same_a
 
 	const std::string where_clause{ "WHERE rowid=:rowid" };
 
-	EXPECT_EQ(db.update("contacts", updated_fields, where_clause, update_bindings), SQLITE_OK);
+	EXPECT_EQ(db.update("contacts", updated_fields.begin(), updated_fields.end(), 
+		where_clause, update_bindings.begin(), update_bindings.end()), SQLITE_OK);
 
 	std::vector<std::map<std::string, sql::sqlite_data_type>> results;
 
+	std::vector<std::string> cols { "rowid", "*" };
 
-	EXPECT_EQ(db.select_columns("contacts", { "rowid", "*" }, "WHERE rowid=:rowid", update_bindings, results), SQLITE_OK);
+	EXPECT_EQ(db.select_columns("contacts", cols.begin(), cols.end(), "WHERE rowid=:rowid", update_bindings.begin(), update_bindings.end(), results), SQLITE_OK);
 
 	EXPECT_EQ(results.size(), 1u);
 
@@ -213,7 +215,7 @@ TEST_F(sqlite_cpp_tester, given_a_single_quote_in_notes_field_select_returns_sam
 	sql::sqlite db;
 	EXPECT_EQ(db.open("contacts.db"), SQLITE_OK);
 
-	std::vector<sql::column_values> fields{
+	const std::vector<sql::column_values> fields{
 	{"name", "Sean O'Hennessey"},
 	{"company", "Disney"},
 	{"mobile", "07755123456"},
@@ -230,18 +232,20 @@ TEST_F(sqlite_cpp_tester, given_a_single_quote_in_notes_field_select_returns_sam
 	{"notes", "single quote symbol is '"}
 	};
 
-	EXPECT_EQ(db.insert_into("contacts", fields), SQLITE_OK);
+	EXPECT_EQ(db.insert_into("contacts", fields.begin(), fields.end()), SQLITE_OK);
 
 	int lastrowid = db.last_insert_rowid();
 	const std::vector<where_binding>& update_bindings{
        {"rowid", lastrowid}
 	};
 
+	std::vector<std::string> cols{ "rowid", "*" };
 	const std::string where_clause{ "WHERE rowid=:rowid" };
 
 	std::vector<std::map<std::string, sql::sqlite_data_type>> results;
 
-	EXPECT_EQ(db.select_columns("contacts", { "rowid", "*" }, "WHERE rowid=:rowid", update_bindings, results), SQLITE_OK);
+	EXPECT_EQ(db.select_columns("contacts", cols.begin(), cols.end(), 
+		"WHERE rowid=:rowid", update_bindings.begin(), update_bindings.end(), results), SQLITE_OK);
 
 	EXPECT_EQ(results.size(), 1u);
 
@@ -266,7 +270,7 @@ TEST_F(sqlite_cpp_tester, given_non_alphanumeric_characters_inserted_select_retu
 	sql::sqlite db;
 	EXPECT_EQ(db.open("contacts.db"), SQLITE_OK);
 
-	std::vector<sql::column_values> fields{
+	const std::vector<sql::column_values> fields{
 	{"name", "<---------------------->'"},
 	{"company", "D\nisne	y"},
 	{"mobile", "!!!\"0775512345'''6"},
@@ -283,18 +287,20 @@ TEST_F(sqlite_cpp_tester, given_non_alphanumeric_characters_inserted_select_retu
 	{"notes", "1\n2\n3\n4\n5\n"}
 	};
 
-	EXPECT_EQ(db.insert_into("contacts", fields), SQLITE_OK);
+	EXPECT_EQ(db.insert_into("contacts", fields.begin(), fields.end()), SQLITE_OK);
 
 	int lastrowid = db.last_insert_rowid();
 	const std::vector<where_binding>& update_bindings{
 	   {"rowid", lastrowid}
 	};
 
+	std::vector<std::string> cols{ "rowid", "*" };
 	const std::string where_clause{ "WHERE rowid=:rowid" };
 
 	std::vector<std::map<std::string, sql::sqlite_data_type>> results;
 
-	EXPECT_EQ(db.select_columns("contacts", { "rowid", "*" }, "WHERE rowid=:rowid", update_bindings, results), SQLITE_OK);
+	EXPECT_EQ(db.select_columns("contacts", cols.begin(), cols.end(), 
+		"WHERE rowid=:rowid", update_bindings.begin(), update_bindings.end(), results), SQLITE_OK);
 
 	EXPECT_EQ(results.size(), 1u);
 
@@ -318,22 +324,25 @@ TEST_F(sqlite_cpp_tester, add_integer_value_select_returns_same_value_inserted) 
 	sql::sqlite db;
 	EXPECT_EQ(db.open("contacts.db"), SQLITE_OK);
 
-	std::vector<sql::column_values> fields{
+	const std::vector<sql::column_values> fields{
 	{"callerid", "0775512345"},
 	{"contactid", 2}
 	};
 
-	EXPECT_EQ(db.insert_into("calls", fields), SQLITE_OK);
+	EXPECT_EQ(db.insert_into("calls", fields.begin(), fields.end()), SQLITE_OK);
 
-	const std::vector<where_binding>& bindings{
+	const std::vector<where_binding> bindings{
 	   {"contactid", 2}
 	};
 
+	const char* result_cols[] { "timestamp", "callerid", "contactid" };
+	size_t cols_len = sizeof(result_cols) / sizeof(result_cols[0]);
 	const std::string where_clause{ "WHERE rowid=:rowid" };
 
 	std::vector<std::map<std::string, sql::sqlite_data_type>> results;
 
-	EXPECT_EQ(db.select_columns("calls", { "timestamp", "callerid", "contactid" }, "WHERE contactid=:contactid", bindings, results), SQLITE_OK);
+	EXPECT_EQ(db.select_columns("calls", result_cols, result_cols+cols_len, 
+		"WHERE contactid=:contactid", bindings.begin(), bindings.end(), results), SQLITE_OK);
 
 	EXPECT_EQ(results.size(), 1u);
 
@@ -341,6 +350,66 @@ TEST_F(sqlite_cpp_tester, add_integer_value_select_returns_same_value_inserted) 
 	EXPECT_EQ(results[0]["contactid"], fields[1].column_value);
 	// get 3 columns back
 	EXPECT_EQ(results[0].size(), 3u);
+}
+
+// SELECT (using LIKE)
+TEST_F(sqlite_cpp_tester, add_integer_value_select_like_returns_same_value_inserted) {
+	sql::sqlite db;
+	EXPECT_EQ(db.open("contacts.db"), SQLITE_OK);
+
+	const sql::column_values fields[] {
+	{"callerid", "0775512345"},
+	{"contactid", 2}
+	};
+
+	size_t len = sizeof(fields) / sizeof(fields[0]);
+
+	EXPECT_EQ(db.insert_into("calls", fields, fields + len), SQLITE_OK);
+
+	const std::vector<where_binding> bindings{
+	   {"callerid", "077%"}
+	};
+
+	std::vector<std::string> cols { "timestamp", "callerid", "contactid" };
+	const std::string where_clause{ "WHERE callerid LIKE :callerid" };
+
+	std::vector<std::map<std::string, sql::sqlite_data_type>> results;
+
+	EXPECT_EQ(db.select_columns("calls", cols.begin(), cols.end(), 
+		where_clause, bindings.begin(), bindings.end(), results), SQLITE_OK);
+
+	EXPECT_EQ(results.size(), 2u);
+
+	EXPECT_EQ(std::get<std::string>(results[0]["callerid"]), "07788111222");
+	EXPECT_EQ(std::get<int>(results[0]["contactid"]), 1);
+
+	EXPECT_EQ(results[1]["callerid"], fields[0].column_value);
+	EXPECT_EQ(results[1]["contactid"], fields[1].column_value);
+	// get 3 columns back
+	EXPECT_EQ(results[0].size(), 3u);
+}
+
+// GETCALLS
+TEST_F(sqlite_cpp_tester, join_returning_data_from_two_tables_returns_correct_data) {
+	sql::sqlite db;
+	EXPECT_EQ(db.open("contacts.db"), SQLITE_OK);
+
+	const std::vector<std::string> fields { "calls.timestamp", "contacts.name", "calls.callerid", "contacts.url" };
+
+	const std::string where_clause{ "LEFT JOIN contacts ON calls.contactid = contacts.rowid" };
+
+	std::vector<std::map<std::string, sql::sqlite_data_type>> results;
+
+	const std::vector<where_binding> bindings {};  // none required
+
+	EXPECT_EQ(db.select_columns("calls", fields.begin(), fields.end(), 
+		where_clause, bindings.begin(), bindings.end(), results), SQLITE_OK);
+
+	EXPECT_EQ(results.size(), 1u);
+	EXPECT_EQ(std::get<2>(results[0]["callerid"]), "07788111222");
+	EXPECT_EQ(std::get<2>(results[0]["name"]), "Test Person");
+	EXPECT_EQ(std::get<2>(results[0]["url"]), "www.house.com");
+	EXPECT_NE(std::get<2>(results[0]["timestamp"]), "");
 }
 
 

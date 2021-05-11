@@ -2,6 +2,7 @@
 
 #include "sqlite3.h" // required for db_initial_setup
 
+#include <array>
 #include <string>
 #include <iostream>
 #include <cstdio>
@@ -370,7 +371,7 @@ TEST_F(sqlite_cpp_tester, add_integer_value_select_like_returns_same_value_inser
 	   {"callerid", "077%"}
 	};
 
-	std::vector<std::string> cols { "timestamp", "callerid", "contactid" };
+	std::array<std::string, 3> cols { "timestamp", "callerid", "contactid" };
 	const std::string where_clause{ "WHERE callerid LIKE :callerid" };
 
 	std::vector<std::map<std::string, sql::sqlite_data_type>> results;
